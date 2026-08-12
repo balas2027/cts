@@ -8,6 +8,7 @@ import sys
 import argparse
 from pathlib import Path
 from typing import Optional
+from datetime import datetime
 
 try:
     from rich.console import Console
@@ -179,6 +180,35 @@ class CLIAnalyzer:
         
         if export_choice in ['json', 'html', 'txt']:
             output_path = self.console.input("[cyan]Enter output file path: [/cyan]")
+            
+            # Validate and process output path
+            output_path = output_path.strip()
+            
+            # If path is a directory, ask for filename
+            if os.path.isdir(output_path):
+                self.console.print(f"[yellow]ℹ️ Path is a directory. Generating filename...[/yellow]")
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"security_report_{timestamp}.{export_choice}"
+                output_path = os.path.join(output_path, filename)
+                self.console.print(f"[cyan]File will be saved as: {filename}[/cyan]")
+            
+            # Ensure correct file extension
+            ext = os.path.splitext(output_path)[1].lower()
+            if ext != f".{export_choice}":
+                self.console.print(f"[yellow]⚠️  Correcting file extension from '{ext or 'none'}' to '.{export_choice}'[/yellow]")
+                if ext:
+                    output_path = output_path.rsplit('.', 1)[0] + f".{export_choice}"
+                else:
+                    output_path = f"{output_path}.{export_choice}"
+            
+            # Create directory if it doesn't exist
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                try:
+                    os.makedirs(output_dir, exist_ok=True)
+                except Exception as e:
+                    self.console.print(f"[red]Error creating directory: {str(e)}[/red]")
+                    return
             
             try:
                 if export_choice == 'json':
